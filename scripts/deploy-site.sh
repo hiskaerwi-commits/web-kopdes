@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+# Deploy/perbarui satu instalasi web-kopdes di VPS aaPanel.
+# Jalankan DARI DALAM folder document root website tujuan (yang sudah dibuat lewat aaPanel),
+# sebagai root. Baca docs/aapanel-deployment-checklist.md sebelum pakai script ini.
+#
+# Mode "clone" : untuk website PERTAMA di VPS ini (clone dari GitHub, composer+npm install penuh).
+# Mode "copy"  : untuk website TAMBAHAN di VPS yang sama (salin dari folder situs yang sudah jalan,
+#                lebih cepat karena tidak install ulang composer/npm).
+
+set -euo pipefail
+
+usage() {
+    cat <<'USAGE'
+Pemakaian:
+  deploy-site.sh clone --domain=DOMAIN --repo=URL_GIT --db-name=NAMA --db-user=USER --db-pass=PASSWORD [opsi] [--yes]
+  deploy-site.sh copy  --domain=DOMAIN --source=/path/situs/lain --db-name=NAMA --db-user=USER --db-pass=PASSWORD [opsi] [--yes]
+
+Opsi:
+  --domain=DOMAIN               Domain situs tanpa https://, contoh: kopdes-niagale.go.id
+  --repo=URL                     (mode clone) URL git repository
+  --source=PATH                  (mode copy) folder situs lain yang sudah berjalan
+  --db-name=NAMA                 Nama database PostgreSQL untuk situs ini
+  --db-user=USER                 Username database aplikasi (dibuat manual lebih dulu lewat aaPanel)
+  --db-pass=PASSWORD             Password database aplikasi
+  --db-host=HOST                 Default: 127.0.0.1
+  --db-port=PORT                 Default: 5432
+  --db-superuser=USER            Default: postgres (dipakai untuk import dump & GRANT, hanya mode clone)
+  --db-superuser-pass=PASSWORD   Password superuser database (hanya mode clone; kosongkan untuk lewati import otomatis)
+  --yes                          Lewati konfirmasi interaktif
+  -h, --help                     Tampilkan bantuan ini
+
+Contoh (situs pertama di VPS):
+  cd /www/wwwroot/kopdes-niagale.go.id
+  bash deploy-site.sh clone --domain=kopdes-niagale.go.id \
+    --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
+    --db-name=kopdes_niagale --db-user=kopdes_niagale --db-pass='RAHASIA' \
+    --db-superuser-pass='PASSWORD_POSTGRES'
+
+Contoh (situs kedua dst di VPS yang sama, salin dari situs pertama):
+  cd /www/wwwroot/kopdes-lain.go.id
+  bash deploy-site.sh copy --domain=kopdes-lain.go.id \
+    --source=/www/wwwroot/kopdes-niagale.go.id \
+    --db-name=kopdes_lain --db-user=kopdes_lain --db-pass='RAHASIA' \
+    --db-superuser-pass='PASSWORD_POSTGRES'
+USAGE
+}
+
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+MODE="$1"
+shift
+if [[ "$MODE" != "clone" && "$MODE" != "copy" ]]; then
+    usage
+    exit 1
+fi
+
+DOMAIN=""
+REPO=""
+SOURCE=""
+DB_NAME=""
+DB_USER=""
+DB_PASS=""
+DB_HOST="127.0.0.1"
+DB_PORT="5432"
+DB_SUPERUSER="postgres"
+DB_SUPERUSER_PASS=""
+ASSUME_YES="false"
+
+for arg in "$@"; do
+    case "$arg" in
+        --domain=*) DOMAIN="${arg#*=}" ;;
+        --repo=*) REPO="${arg#*=}" ;;
+        --source=*) SOURCE="${arg#*=}" ;;
+        --db-name=*) DB_NAME="${arg#*=}" ;;
+        --db-user=*) DB_USER="${arg#*=}" ;;
+        --db-pass=*) DB_PASS="${arg#*=}" ;;
+        --db-host=*) DB_HOST="${arg#*=}" ;;
+        --db-port=*) DB_PORT="${arg#*=}" ;;
+        --db-superuser=*) DB_SUPERUSER="${arg#*=}" ;;
+        --db-superuser-pass=*) DB_SUPERUSER_PASS="${arg#*=}" ;;
+        --yes) ASSUME_YES="true" ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Opsi tidak dikenal: $arg" >&2; usage; exit 1 ;;
+    esac
+done
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Jalankan sebagai root." >&2
+    exit 1
+fi
+if [ -z "$DOMAIN" ] || [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASS" ]; then
+    echo "Wajib isi --domain, --db-name, --db-user, --db-pass." >&2
+    usage
+    exit 1
+fi
+if [ "$MODE" = "clone" ] && [ -z "$REPO" ]; then
+    echo "Mode clone wajib isi --repo=URL_GIT" >&2
+    exit 1
+fi
+if [ "$MODE" = "copy" ] && [ -z "$SOURCE" ]; then
+    echo "Mode copy wajib isi --source=/path/ke/situs/lain" >&2
+    exit 1
+fi
+if [ "$MODE" = "copy" ] && [ ! -d "$SOURCE" ]; then
+    echo "Folder source tidak ditemukan: $SOURCE" >&2
+    exit 1
+fi
+
+TARGET_DIR="$(pwd)"
+echo "Domain     : $DOMAIN"
+echo "Mode       : $MODE"
+echo "Target dir : $TARGET_DIR"
+echo "Database   : $DB_NAME (user aplikasi: $DB_USER)"
+[ "$MODE" = "clone" ] && echo "Repo       : $REPO"
+[ "$MODE" = "copy" ] && echo "Source     : $SOURCE"
+echo ""
+
+if [ "$ASSUME_YES" != "true" ]; then
+    read -r -p "Folder \"$TARGET_DIR\" akan DIBERSIHKAN (kecuali .well-known) lalu diisi ulang. Lanjut? Ketik 'ya': " CONFIRM
+    if [ "$CONFIRM" != "ya" ]; then
+        echo "Dibatalkan."
+        exit 1
+    fi
+fi
+
+set_env() {
+    local key="$1" value="$2"
+    if grep -q "^${key}=" .env 2>/dev/null; then
+        sed -i "s#^${key}=.*#${key}=${value}#" .env
+    else
+        printf '%s=%s\n' "$key" "$value" >> .env
+    fi
+}
+
+if [ "$MODE" = "clone" ]; then
+    echo "== Membersihkan folder target =="
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
+
+    echo "== Clone repository =="
+    TMP_DIR=$(mktemp -d)
+    git clone "$REPO" "$TMP_DIR"
+    shopt -s dotglob
+    mv "$TMP_DIR"/* "$TARGET_DIR"/
+    shopt -u dotglob
+    rm -rf "$TMP_DIR"
+
+    git config --global --add safe.directory "$TARGET_DIR"
+
+    echo "== Install dependency PHP & Node =="
+    composer install --no-dev --optimize-autoloader
+    npm install
+else
+    echo "== Menyalin dari $SOURCE =="
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
+    cp -a "$SOURCE"/. "$TARGET_DIR"/
+    git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
+fi
+
+chown -R www:www "$TARGET_DIR"
+
+echo "== Setup .env =="
+if [ ! -f .env ]; then
+    cp .env.example .env
+fi
+set_env APP_ENV production
+set_env APP_DEBUG false
+set_env APP_URL "https://${DOMAIN}"
+set_env DB_CONNECTION pgsql
+set_env DB_HOST "$DB_HOST"
+set_env DB_PORT "$DB_PORT"
+set_env DB_DATABASE "$DB_NAME"
+set_env DB_USERNAME "$DB_USER"
+set_env DB_PASSWORD "$DB_PASS"
+php artisan key:generate --force
+
+echo "== Bersihkan cache lama (WAJIB sebelum storage:link, terutama mode copy) =="
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan storage:link
+
+if [ "$MODE" = "clone" ]; then
+    if [ -n "$DB_SUPERUSER_PASS" ]; then
+        LATEST_DUMP=$(ls -t storage/app/private/backups/*.sql 2>/dev/null | head -n1 || true)
+        if [ -n "$LATEST_DUMP" ]; then
+            echo "== Import dump database: $LATEST_DUMP =="
+            PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -f "$LATEST_DUMP"
+        else
+            echo "Tidak ada file dump di storage/app/private/backups, migrate dari kosong."
+            php artisan migrate --force
+        fi
+
+        echo "== Berikan hak akses tabel ke user aplikasi =="
+        PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" <<SQL
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${DB_USER};
+SQL
+    else
+        echo "PERINGATAN: --db-superuser-pass tidak diisi. Lewati import dump & GRANT otomatis."
+        echo "Buat database+user lebih dulu lewat aaPanel, lalu jalankan migrate manual:"
+        php artisan migrate --force
+    fi
+
+    echo "== Build aset frontend =="
+    npm run build
+else
+    echo "== Salin ulang file media (storage/app/public) dari situs sumber =="
+    rm -rf storage/app/public
+    cp -a "$SOURCE"/storage/app/public storage/app/public
+fi
+
+echo "== Cache ulang konfigurasi untuk produksi =="
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan filament:assets
+
+echo "== Perbaiki kepemilikan & permission =="
+chown -R www:www "$TARGET_DIR"
+chmod -R 775 storage bootstrap/cache
+
+cat <<INFO
+
+====================================================================
+Selesai. Langkah manual yang masih perlu dilakukan lewat aaPanel:
+1. Buat/edit vhost Nginx untuk domain ${DOMAIN}
+   (lihat docs/aapanel-deployment-checklist.md Bagian 2.8 untuk contoh konfigurasinya).
+2. Aktifkan SSL (Let's Encrypt) lewat menu SSL aaPanel untuk domain ini.
+3. Buka https://${DOMAIN}/admin lalu buat/ganti akun admin:
+   php artisan make:filament-user
+4. Kalau ini situs PERTAMA yang pakai fitur sync data wilayah, tes dulu manual:
+   node scripts/sync-simkopdes.mjs --region=KODE_PROVINSI
+5. Pantau log kalau ada masalah: tail -f storage/logs/laravel.log
+====================================================================
+INFO

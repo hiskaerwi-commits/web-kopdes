@@ -1,0 +1,234 @@
+{
+  "source": "https://api.simkopdes.go.id/api/provinces",
+  "fetched_at": "2026-09-16T05:06:34.618Z",
+  "data": [
+    {
+      "province_id": 1,
+      "code": "11",
+      "name": "ACEH",
+      "country_id": 68
+    },
+    {
+      "province_id": 17,
+      "code": "51",
+      "name": "BALI",
+      "country_id": 68
+    },
+    {
+      "province_id": 16,
+      "code": "36",
+      "name": "BANTEN",
+      "country_id": 68
+    },
+    {
+      "province_id": 7,
+      "code": "17",
+      "name": "BENGKULU",
+      "country_id": 68
+    },
+    {
+      "province_id": 14,
+      "code": "34",
+      "name": "DAERAH ISTIMEWA YOGYAKARTA",
+      "country_id": 68
+    },
+    {
+      "province_id": 11,
+      "code": "31",
+      "name": "DKI JAKARTA",
+      "country_id": 68
+    },
+    {
+      "province_id": 29,
+      "code": "75",
+      "name": "GORONTALO",
+      "country_id": 68
+    },
+    {
+      "province_id": 5,
+      "code": "15",
+      "name": "JAMBI",
+      "country_id": 68
+    },
+    {
+      "province_id": 12,
+      "code": "32",
+      "name": "JAWA BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 13,
+      "code": "33",
+      "name": "JAWA TENGAH",
+      "country_id": 68
+    },
+    {
+      "province_id": 15,
+      "code": "35",
+      "name": "JAWA TIMUR",
+      "country_id": 68
+    },
+    {
+      "province_id": 20,
+      "code": "61",
+      "name": "KALIMANTAN BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 22,
+      "code": "63",
+      "name": "KALIMANTAN SELATAN",
+      "country_id": 68
+    },
+    {
+      "province_id": 21,
+      "code": "62",
+      "name": "KALIMANTAN TENGAH",
+      "country_id": 68
+    },
+    {
+      "province_id": 23,
+      "code": "64",
+      "name": "KALIMANTAN TIMUR",
+      "country_id": 68
+    },
+    {
+      "province_id": 24,
+      "code": "65",
+      "name": "KALIMANTAN UTARA",
+      "country_id": 68
+    },
+    {
+      "province_id": 9,
+      "code": "19",
+      "name": "KEPULAUAN BANGKA BELITUNG",
+      "country_id": 68
+    },
+    {
+      "province_id": 10,
+      "code": "21",
+      "name": "KEPULAUAN RIAU",
+      "country_id": 68
+    },
+    {
+      "province_id": 8,
+      "code": "18",
+      "name": "LAMPUNG",
+      "country_id": 68
+    },
+    {
+      "province_id": 31,
+      "code": "81",
+      "name": "MALUKU",
+      "country_id": 68
+    },
+    {
+      "province_id": 32,
+      "code": "82",
+      "name": "MALUKU UTARA",
+      "country_id": 68
+    },
+    {
+      "province_id": 18,
+      "code": "52",
+      "name": "NUSA TENGGARA BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 19,
+      "code": "53",
+      "name": "NUSA TENGGARA TIMUR",
+      "country_id": 68
+    },
+    {
+      "province_id": 33,
+      "code": "91",
+      "name": "PAPUA",
+      "country_id": 68
+    },
+    {
+      "province_id": 34,
+      "code": "92",
+      "name": "PAPUA BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 38,
+      "code": "96",
+      "name": "PAPUA BARAT DAYA",
+      "country_id": 68
+    },
+    {
+      "province_id": 37,
+      "code": "95",
+      "name": "PAPUA PEGUNUNGAN",
+      "country_id": 68
+    },
+    {
+      "province_id": 35,
+      "code": "93",
+      "name": "PAPUA SELATAN",
+      "country_id": 68
+    },
+    {
+      "province_id": 36,
+      "code": "94",
+      "name": "PAPUA TENGAH",
+      "country_id": 68
+    },
+    {
+      "province_id": 4,
+      "code": "14",
+      "name": "RIAU",
+      "country_id": 68
+    },
+    {
+      "province_id": 30,
+      "code": "76",
+      "name": "SULAWESI BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 27,
+      "code": "73",
+      "name": "SULAWESI SELATAN",
+      "country_id": 68
+    },
+    {
+      "province_id": 26,
+      "code": "72",
+      "name": "SULAWESI TENGAH",
+      "country_id": 68
+    },
+    {
+      "province_id": 28,
+      "code": "74",
+      "name": "SULAWESI TENGGARA",
+      "country_id": 68
+    },
+    {
+      "province_id": 25,
+      "code": "71",
+      "name": "SULAWESI UTARA",
+      "country_id": 68
+    },
+    {
+      "province_id": 3,
+      "code": "13",
+      "name": "SUMATERA BARAT",
+      "country_id": 68
+    },
+    {
+      "province_id": 6,
+      "code": "16",
+      "name": "SUMATERA SELATAN",
+      "country_id": 68
+    },
+    {
+      "province_id": 2,
+      "code": "12",
+      "name": "SUMATERA UTARA",
+      "country_id": 68
+    }
+  ]
+}

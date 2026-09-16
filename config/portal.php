@@ -1,0 +1,46 @@
+<?php
+
+return [
+    'source' => 'https://simkopdes.go.id/',
+    'date' => '14 September 2026',
+    'hero_title' => "Bangun Ekonomi Desa\nKokohkan Ekonomi Bangsa",
+    'about' => 'Koperasi Desa/Kelurahan Merah Putih menghubungkan potensi desa dengan kebutuhan masyarakat. Melalui pengelolaan yang modern dan dukungan Simkopdes, koperasi memperkuat usaha lokal, distribusi pangan, serta partisipasi anggota dalam ekonomi desa.',
+    'headline_stats' => [
+        ['value' => '83.367', 'label' => 'Koperasi berbadan hukum'],
+        ['value' => '2.511.253', 'label' => 'Anggota terverifikasi'],
+        ['value' => '1.504.520', 'label' => 'Anggota laki-laki'],
+        ['value' => '1.006.733', 'label' => 'Anggota perempuan'],
+    ],
+    'stats' => [
+        ['label' => 'Cakupan wilayah', 'value' => '83.762', 'unit' => 'Desa / kelurahan', 'description' => 'Wilayah yang tercatat dalam jangkauan program.'],
+        ['label' => 'Koperasi berbadan hukum', 'value' => '83.367', 'unit' => 'Koperasi', 'description' => 'Kelembagaan koperasi yang memiliki badan hukum.'],
+        ['label' => 'Terhubung secara digital', 'value' => '79.718', 'unit' => 'Koperasi', 'description' => 'Koperasi yang terintegrasi dalam ekosistem Simkopdes.'],
+        ['label' => 'Pengurus terverifikasi', 'value' => '695.485', 'unit' => 'Pengurus', 'description' => 'Pengelola dan pengawas yang tercatat dalam sistem.'],
+        ['label' => 'Nilai transaksi ekonomi', 'value' => 'Rp 206,58 M', 'unit' => 'Nilai transaksi', 'description' => 'Nilai aktivitas ekonomi yang ditampilkan pada sumber.'],
+        ['label' => 'Aktivitas perdagangan', 'value' => '79.940', 'unit' => 'Transaksi', 'description' => 'Akumulasi transaksi yang dilaporkan dalam sistem.'],
+    ],
+    'benefits_source' => 'https://jdih.kop.go.id/admin/uploads/11__Petunjuk_Pelaksanaan_Kopdes_Merah_Putih_Paraf_TTD_Menteri_Koperasi.pdf',
+    'benefits' => [
+        ['title' => 'Kesejahteraan warga yang lebih baik', 'image' => 'sejahtera.webp'],
+        ['title' => 'Peluang kerja di lingkungan desa', 'image' => 'kerja.webp'],
+        ['title' => 'Layanan yang teratur dan responsif', 'image' => 'pelayanan.webp'],
+        ['title' => 'Warga ikut menggerakkan ekonomi', 'image' => 'berdaya.webp'],
+        ['title' => 'Pengelolaan koperasi semakin modern', 'image' => 'digital-koperasi.webp'],
+        ['title' => 'Harga kebutuhan lebih terjangkau', 'image' => 'menekan-harga.webp'],
+        ['title' => 'Nilai hasil pertanian lebih baik', 'image' => 'bg-login.webp'],
+        ['title' => 'Mengurangi ketergantungan pada tengkulak', 'image' => 'tengkulak.webp'],
+        ['title' => 'Distribusi barang lebih singkat', 'image' => 'pemerataan-ekonomi.webp'],
+        ['title' => 'Akses layanan keuangan lebih luas', 'image' => 'inklusi.webp'],
+        ['title' => 'Usaha kecil tumbuh bersama', 'image' => 'umkm.webp'],
+        ['title' => 'Mendorong pengentasan kemiskinan ekstrem', 'image' => 'nelayan.webp'],
+        ['title' => 'Membantu menjaga kestabilan harga', 'image' => 'rupiah.webp'],
+    ],
+    'regulations' => [
+        ['category' => 'Undang-Undang', 'title' => 'UU Nomor 25 Tahun 1992', 'description' => 'Perkoperasian', 'url' => 'https://storage.googleapis.com/kopdes-merah-putih/regulations/1.%20UU%20Nomor%2025%20Tahun%201992.pdf'],
+        ['category' => 'Undang-Undang', 'title' => 'UU Nomor 59 Tahun 2024', 'description' => 'Rencana Pembangunan Jangka Panjang Nasional 2025–2045', 'url' => 'https://storage.googleapis.com/kopdes-merah-putih/regulations/3.%20UU%20Nomor%2059%20Tahun%202024.pdf'],
+        ['category' => 'Keputusan Presiden', 'title' => 'Keppres Nomor 9 Tahun 2025', 'description' => 'Satuan tugas pembentukan Koperasi Desa/Kelurahan Merah Putih', 'url' => 'https://jdih.kop.go.id/doc/detail/doc-30-peraturan_kdmp'],
+        ['category' => 'Instruksi Presiden', 'title' => 'Inpres Nomor 5 Tahun 2026', 'description' => 'Pengadaan dan pengelolaan SDM untuk operasionalisasi koperasi dan kampung nelayan', 'url' => 'https://jdih.kop.go.id/doc/detail/doc-41-peraturan_kdmp'],
+        ['category' => 'Peraturan Menteri', 'title' => 'Permenkop Nomor 9 Tahun 2025', 'description' => 'Penyaluran pinjaman atau pembiayaan dana bergulir kepada KDKMP', 'url' => 'https://jdih.kop.go.id/doc/detail/doc-37-peraturan_kdmp'],
+        ['category' => 'Pedoman', 'title' => 'Pedoman Menkop Nomor 1 Tahun 2026', 'description' => 'Verifikasi dan validasi pembangunan gerai, pergudangan, dan kelengkapan koperasi', 'url' => 'https://jdih.kop.go.id/doc/detail/doc-44-peraturan_kdmp'],
+    ],
+];

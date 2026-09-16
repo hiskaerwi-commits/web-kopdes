@@ -1,0 +1,76 @@
+{
+  "source": "https://simkopdes.go.id/",
+  "retrieved_on": "2026-09-14",
+  "networks": [
+    {
+      "name": "KOPERASI DESA MERAH PUTIH KAMPUNG NIAGALE DISTRIK DANIME",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/kampung-niagale-distrik-danime"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH PIRIM PIRIM",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/pirim-pirim"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH SILANKURU",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/silankuru"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH YUTPUL",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/yutpul"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH ANGGULPA KECAMATAN MOBA",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/anggulpa-kecamatan-moba"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH MIRI KECAMATAN MUGI",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/miri-kecamatan-mugi"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH KERET ANGGOMA",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/keret-anggoma"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH KAMPUNG YIMIRIBAGA",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/kampung-yimiribaga"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH KAMPUNG WUMBANAKME",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/kampung-wumbanakme"
+    },
+    {
+      "name": "KOPERASI DESA MERAH PUTIH KAMPUNG PIWUNGUN",
+      "region": "Direktori nasional Simkopdes",
+      "url": "https://simkopdes.go.id/kampung-piwungun"
+    }
+  ],
+  "courses": [
+    {
+      "title": "Dasar-dasar perkoperasian",
+      "description": "Pelajari konsep, kelembagaan, dan pengelolaan usaha koperasi.",
+      "image": "course-1.jpg",
+      "url": "https://lms.kop.go.id/courses/a2978f71-e42a-4a30-88d1-a5afe3371502"
+    },
+    {
+      "title": "Aset digital koperasi: Banten",
+      "description": "Kembangkan kemampuan pengelolaan dan promosi koperasi melalui teknologi.",
+      "image": "course-2.jpg",
+      "url": "https://lms.kop.go.id/courses/a14e678f-530a-4ba9-93a7-c92905c9d675"
+    },
+    {
+      "title": "Mengenal tata kelola koperasi",
+      "description": "Bangun pemahaman tentang peran anggota dan pengelolaan koperasi.",
+      "image": "course-3.jpg",
+      "url": "https://lms.kop.go.id/courses/a19a0f21-d45f-4393-b2b5-ff924220ee0f"
+    }
+  ]
+}
