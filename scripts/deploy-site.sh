@@ -138,6 +138,8 @@ set_env() {
     fi
 }
 
+SELF_NAME="$(basename "$0")"
+
 if [ "$MODE" = "clone" ]; then
     echo "== Membersihkan folder target =="
     # aaPanel menandai .user.ini sebagai immutable (chattr +i) untuk keamanan, jadi rm gagal
@@ -148,7 +150,9 @@ if [ "$MODE" = "clone" ]; then
     if [ -f "$TARGET_DIR/.user.ini" ]; then
         chattr -i "$TARGET_DIR/.user.ini" 2>/dev/null || true
     fi
-    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
+    # ! -name "$SELF_NAME" — jangan hapus script ini sendiri kalau dijalankan langsung
+    # dari dalam folder target (misal hasil curl -o deploy-site.sh di folder situs).
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name "$SELF_NAME" -exec rm -rf {} +
 
     echo "== Clone repository =="
     TMP_DIR=$(mktemp -d)
@@ -171,7 +175,7 @@ else
     if [ -f "$TARGET_DIR/.user.ini" ]; then
         chattr -i "$TARGET_DIR/.user.ini" 2>/dev/null || true
     fi
-    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name "$SELF_NAME" -exec rm -rf {} +
     cp -a "$SOURCE"/. "$TARGET_DIR"/
     git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
 fi
