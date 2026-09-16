@@ -142,10 +142,12 @@ if [ "$MODE" = "clone" ]; then
     echo "== Membersihkan folder target =="
     # aaPanel menandai .user.ini sebagai immutable (chattr +i) untuk keamanan, jadi rm gagal
     # "Operation not permitted" walau dijalankan sebagai root sampai atribut ini dilepas.
-    # Sengaja TANPA -R (non-recursive) — kalau folder ini sudah pernah dipakai deploy sebelumnya
-    # dan berisi vendor/node_modules (puluhan ribu file), chattr -iR ke semuanya bisa lama sekali
-    # di VPS spek kecil. Cukup lepas immutable di level file/folder teratas saja.
-    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -i {} + 2>/dev/null
+    # Cukup file ini saja yang perlu dilepas kuncinya — jangan pakai -R/rekursif ke seluruh
+    # folder, karena kalau folder ini sudah pernah dipakai deploy sebelumnya (ada
+    # vendor/node_modules, puluhan ribu file), chattr rekursif bisa lama sekali di VPS spek kecil.
+    if [ -f "$TARGET_DIR/.user.ini" ]; then
+        chattr -i "$TARGET_DIR/.user.ini" 2>/dev/null || true
+    fi
     find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
 
     echo "== Clone repository =="
@@ -166,7 +168,9 @@ if [ "$MODE" = "clone" ]; then
     npm install
 else
     echo "== Menyalin dari $SOURCE =="
-    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -i {} + 2>/dev/null
+    if [ -f "$TARGET_DIR/.user.ini" ]; then
+        chattr -i "$TARGET_DIR/.user.ini" 2>/dev/null || true
+    fi
     find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
     cp -a "$SOURCE"/. "$TARGET_DIR"/
     git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
@@ -201,25 +205,28 @@ if [ "$MODE" = "clone" ]; then
         apt-get update -y && apt-get install -y postgresql-client
     fi
 
-    # PGPASSWORD boleh kosong (default) — kalau PostgreSQL pakai trust auth untuk koneksi lokal
-    # (umum di instalasi aaPanel), psql tetap bisa konek sebagai $DB_SUPERUSER tanpa password.
-    # Kalau ternyata VPS ini butuh password, isi --db-superuser-pass saat menjalankan script.
+    # PGPASSWORD cuma di-export kalau --db-superuser-pass diisi — kalau PostgreSQL pakai trust
+    # auth untuk koneksi lokal (umum di instalasi aaPanel), psql tetap bisa konek sebagai
+    # $DB_SUPERUSER tanpa password sama sekali.
+    if [ -n "$DB_SUPERUSER_PASS" ]; then
+        export PGPASSWORD="$DB_SUPERUSER_PASS"
+    fi
+
     LATEST_DUMP=$(ls -t storage/app/private/backups/*.sql 2>/dev/null | head -n1 || true)
     if [ -n "$LATEST_DUMP" ]; then
         echo "== Import dump database: $LATEST_DUMP =="
-        PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -f "$LATEST_DUMP"
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$LATEST_DUMP"
     else
         echo "Tidak ada file dump di storage/app/private/backups, migrate dari kosong."
         php artisan migrate --force
     fi
 
     echo "== Berikan hak akses tabel ke user aplikasi =="
-    PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" <<SQL
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${DB_USER};
-SQL
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"$DB_USER\";"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO \"$DB_USER\";"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"$DB_USER\";"
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO \"$DB_USER\";"
+    unset PGPASSWORD
 
     echo "== Build aset frontend =="
     npm run build
