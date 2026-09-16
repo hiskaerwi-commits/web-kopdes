@@ -213,9 +213,17 @@ if [ "$MODE" = "clone" ]; then
     fi
 
     LATEST_DUMP=$(ls -t storage/app/private/backups/*.sql 2>/dev/null | head -n1 || true)
-    if [ -n "$LATEST_DUMP" ]; then
+    # Cek dulu database-nya sudah ada isinya atau belum kosong — kalau deploy-site.sh
+    # sebelumnya sempat jalan sebagian (misal gagal di step lain) dan dump sudah pernah
+    # ke-import, ngulang import dump yang sama bakal gagal "relation ... already exists".
+    EXISTING_TABLES=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -tAc \
+        "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo 0)
+    if [ -n "$LATEST_DUMP" ] && [ "${EXISTING_TABLES:-0}" -eq 0 ]; then
         echo "== Import dump database: $LATEST_DUMP =="
         psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$LATEST_DUMP"
+    elif [ -n "$LATEST_DUMP" ]; then
+        echo "Database '$DB_NAME' sudah berisi $EXISTING_TABLES tabel (kemungkinan dump sudah pernah di-import sebelumnya) — lewati import, lanjut migrate --force."
+        php artisan migrate --force
     else
         echo "Tidak ada file dump di storage/app/private/backups, migrate dari kosong."
         php artisan migrate --force
