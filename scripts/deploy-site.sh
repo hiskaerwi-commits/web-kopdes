@@ -258,17 +258,90 @@ echo "== Perbaiki kepemilikan & permission =="
 chown -R www:www "$TARGET_DIR"
 chmod -R 775 storage bootstrap/cache
 
-cat <<INFO
+echo
+echo "===================================================================="
+echo " Selesai instal file & database. Langkah manual di aaPanel (urutan penting):"
+echo "===================================================================="
+echo "1) Aktifkan SSL -> Website > ${DOMAIN} > SSL > Let's Encrypt (skip kalau situs di belakang"
+echo "   Cloudflare mode Full/Full strict dan sertifikatnya sudah ada)."
+echo "2) Set preset Rewrite -> Website > ${DOMAIN} > Rewrite > pilih 'Laravel5' > Save."
+echo "   (Ini yang nyediain routing utama, JANGAN tambah location / manual di Config.)"
+echo "3) Paste config ini ke Website > ${DOMAIN} > Config (ganti SELURUH isinya):"
+echo "===================================================================="
+cat <<NGINX
+server
+{
+    listen 80;
+    listen 443 ssl;
+    listen [::]:80;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${DOMAIN};
+    index index.php index.html;
+    root /www/wwwroot/${DOMAIN}/public;
+    include /www/server/panel/vhost/nginx/extension/${DOMAIN}/*.conf;
 
-====================================================================
-Selesai. Langkah manual yang masih perlu dilakukan lewat aaPanel:
-1. Buat/edit vhost Nginx untuk domain ${DOMAIN}
-   (lihat docs/aapanel-deployment-checklist.md Bagian 2.8 untuk contoh konfigurasinya).
-2. Aktifkan SSL (Let's Encrypt) lewat menu SSL aaPanel untuk domain ini.
-3. Buka https://${DOMAIN}/admin lalu buat/ganti akun admin:
-   php artisan make:filament-user
-4. Kalau ini situs PERTAMA yang pakai fitur sync data wilayah, tes dulu manual:
-   node scripts/sync-simkopdes.mjs --region=KODE_PROVINSI
-5. Pantau log kalau ada masalah: tail -f storage/logs/laravel.log
-====================================================================
-INFO
+    #CERT-APPLY-CHECK--START
+    include /www/server/panel/vhost/nginx/well-known/${DOMAIN}.conf;
+    #CERT-APPLY-CHECK--END
+    #SSL-START
+    ssl_certificate    /www/server/panel/vhost/cert/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key    /www/server/panel/vhost/cert/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_tickets on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    add_header Strict-Transport-Security "max-age=31536000";
+    error_page 497 https://\$host\$request_uri;
+    #SSL-END
+
+    #ERROR-PAGE-START
+    error_page 404 /404.html;
+    error_page 502 /502.html;
+    #ERROR-PAGE-END
+
+    #PHP-INFO-START
+    include enable-php-83.conf;
+    #PHP-INFO-END
+
+    #REWRITE-START
+    include /www/server/panel/vhost/rewrite/${DOMAIN}.conf;
+    #REWRITE-END
+
+    location ~ ^/(\.user\.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README\.md) {
+        return 404;
+    }
+
+    location ~ \.well-known {
+        allow all;
+    }
+
+    location ~* \.(js|css)\$ {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+        expires 7d;
+        error_log /dev/null;
+        access_log /dev/null;
+    }
+
+    location ~* \.(gif|jpg|jpeg|png|bmp|svg|webp|ico)\$ {
+        expires 30d;
+        error_log /dev/null;
+        access_log /dev/null;
+    }
+
+    access_log  /www/wwwlogs/${DOMAIN}.log;
+    error_log   /www/wwwlogs/${DOMAIN}.error.log;
+}
+NGINX
+echo "===================================================================="
+echo "   (Kalau pakai Cloudflare mode Flexible: hapus 'listen 443 ssl;', 'listen [::]:443 ssl;',"
+echo "   dan seluruh blok #SSL-START...#SSL-END di atas -- origin cukup HTTP saja.)"
+echo "4) Save -> nginx -t harus lolos -> reload Nginx."
+echo "5) Buka https://${DOMAIN}/admin lalu buat/ganti akun admin:"
+echo "   php artisan make:filament-user"
+echo "6) Kalau ini situs PERTAMA yang pakai fitur sync data wilayah, tes dulu manual:"
+echo "   node scripts/sync-simkopdes.mjs --region=KODE_PROVINSI"
+echo "7) Pantau log kalau ada masalah: tail -f storage/logs/laravel.log"
+echo "===================================================================="
