@@ -70,7 +70,14 @@ if (!executablePath && process.platform === 'win32') {
     const chrome = path.join(process.env.PROGRAMFILES || 'C:/Program Files','Google/Chrome/Application/chrome.exe');
     try {await fs.access(chrome); executablePath = chrome;} catch { /* Use Puppeteer browser. */ }
 }
-const browser = await puppeteer.launch({headless:true,pipe:true,executablePath,userDataDir:path.join(root,'storage/framework/simkopdes-sync-browser'),timeout:30000});
+// --no-sandbox wajib kalau proses ini jalan sebagai root (default di VPS aaPanel, baik dipanggil
+// manual lewat SSH maupun otomatis dari SyncProvinceStatistics job) — tanpa ini Chrome langsung
+// gagal start dan biasanya cuma keliatan sebagai error pipe mentah ("ECONNRESET") bukan pesan yang jelas.
+// --disable-dev-shm-usage supaya gak kehabisan /dev/shm di VPS dengan RAM kecil.
+const browser = await puppeteer.launch({
+    headless:true,pipe:true,executablePath,userDataDir:path.join(root,'storage/framework/simkopdes-sync-browser'),timeout:30000,
+    args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage'],
+});
 let payload;
 let provinceDetail = null;
 const scoped = {};
