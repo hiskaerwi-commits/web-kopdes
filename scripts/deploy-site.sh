@@ -140,9 +140,12 @@ set_env() {
 
 if [ "$MODE" = "clone" ]; then
     echo "== Membersihkan folder target =="
-    # aaPanel menandai .user.ini (dan kadang file lain) sebagai immutable (chattr +i) untuk keamanan,
-    # jadi rm gagal "Operation not permitted" walau dijalankan sebagai root sampai atribut ini dilepas.
-    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -iR {} + 2>/dev/null
+    # aaPanel menandai .user.ini sebagai immutable (chattr +i) untuk keamanan, jadi rm gagal
+    # "Operation not permitted" walau dijalankan sebagai root sampai atribut ini dilepas.
+    # Sengaja TANPA -R (non-recursive) — kalau folder ini sudah pernah dipakai deploy sebelumnya
+    # dan berisi vendor/node_modules (puluhan ribu file), chattr -iR ke semuanya bisa lama sekali
+    # di VPS spek kecil. Cukup lepas immutable di level file/folder teratas saja.
+    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -i {} + 2>/dev/null
     find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
 
     echo "== Clone repository =="
@@ -163,7 +166,7 @@ if [ "$MODE" = "clone" ]; then
     npm install
 else
     echo "== Menyalin dari $SOURCE =="
-    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -iR {} + 2>/dev/null
+    command -v chattr >/dev/null 2>&1 && find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec chattr -i {} + 2>/dev/null
     find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +
     cp -a "$SOURCE"/. "$TARGET_DIR"/
     git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
