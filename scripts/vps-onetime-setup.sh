@@ -42,23 +42,12 @@ fi
 echo ""
 echo "== 4. Install library sistem untuk Chrome headless (dipakai fitur sync data wilayah) =="
 apt-get update -y
-# Install SATU-SATU (bukan satu perintah panjang) — apt-get install membatalkan SELURUH daftar
-# kalau ada SATU SAJA nama paket yang tidak ada di versi Ubuntu ini (misal libasound2 sudah
-# berganti nama jadi libasound2t64 di Ubuntu 24.04 "noble"), jadi paket lain yang valid pun
-# ikut gagal terpasang. Dengan loop, paket yang namanya beda cuma di-skip sendiri.
-CHROME_LIBS="ca-certificates fonts-liberation libasound2 libasound2t64 libatk-bridge2.0-0 libatk1.0-0
-libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc-s1
-libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0
-libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1
-libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release
-wget xdg-utils libu2f-udev libvulkan1"
-for pkg in $CHROME_LIBS; do
-    if apt-get install -y "$pkg" >/dev/null 2>&1; then
-        echo "  OK   $pkg"
-    else
-        echo "  skip $pkg (tidak ada di repo versi OS ini — normal kalau namanya sudah berganti)"
-    fi
-done
+apt-get install -y \
+    libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+    libasound2t64 libpango-1.0-0 libcairo2 libnss3 libnspr4 \
+    libxss1 libx11-xcb1 fonts-liberation libxext6 xdg-utils \
+    || echo "Beberapa paket mungkin gak ketemu (beda nama per versi Ubuntu) — itu normal, lanjut aja kalau library utama udah kepasang."
 
 echo ""
 echo "===================================================================="
