@@ -218,7 +218,10 @@ chmod -R 775 storage bootstrap/cache
 
 ### 2.8 Konfigurasi Nginx (siap tempel, ganti domain saja)
 
-**Urutan penting:** aktifkan **SSL → Let's Encrypt** dulu lewat GUI aaPanel (Website → DOMAIN_KAMU → SSL) supaya file sertifikatnya sudah ada di server, baru tempel config di bawah ini. Kalau config ditempel duluan sebelum SSL aktif, `ssl_certificate`-nya akan menunjuk ke file yang belum ada dan Nginx gagal reload.
+**Urutan penting:**
+1. Aktifkan **SSL → Let's Encrypt** dulu lewat GUI aaPanel (Website → DOMAIN_KAMU → SSL) supaya file sertifikatnya sudah ada di server. Kalau config ditempel duluan sebelum SSL aktif, `ssl_certificate`-nya akan menunjuk ke file yang belum ada dan Nginx gagal reload.
+2. Buka tab **Rewrite** (sebelah tab Config, satu domain yang sama) → pilih preset **`Laravel5`** dari dropdown → Save. Ini yang nyediain routing utama Laravel (`location / { try_files ...; }`) lewat file `/www/server/panel/vhost/rewrite/DOMAIN_KAMU.conf` yang di-include otomatis di config — **jangan** ditambah manual di Config, nanti malah bentrok "duplicate location /".
+3. Baru tempel config Nginx di bawah ini.
 
 Buka **Website → DOMAIN_KAMU → Config**, **ganti seluruh isinya** dengan block berikut (cukup ganti semua `DOMAIN_KAMU` jadi domain asli — cari-ganti sekali saja):
 
@@ -264,14 +267,6 @@ server
     include /www/server/panel/vhost/rewrite/DOMAIN_KAMU.conf;
     #REWRITE-END
 
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        include enable-php-83.conf;
-    }
-
     location ~ ^/(\.user\.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README\.md) {
         return 404;
     }
@@ -301,7 +296,8 @@ server
 Save → `nginx -t` lewat aaPanel (atau menu Nginx) buat cek syntax valid → reload/restart Nginx.
 
 Catatan:
-- Blok `.php$` pakai `enable-php-83.conf` — samakan dengan versi PHP yang dipilih waktu **Add site** (Bagian 2.1). Kalau pilih versi PHP lain, ganti angkanya di dua tempat (`#PHP-INFO-START` dan `location ~ \.php$`).
+- **Jangan tambah `location / {}` atau `location ~ \.php$ {}` manual** — keduanya sudah otomatis ke-handle oleh `#PHP-INFO-START` (eksekusi PHP) dan preset Rewrite `Laravel5` di atas (routing utama). Nambah manual bikin Nginx gagal save dengan error "duplicate location".
+- `#PHP-INFO-START` pakai `enable-php-83.conf` — samakan dengan versi PHP yang dipilih waktu **Add site** (Bagian 2.1). Kalau pilih versi PHP lain, ganti angkanya di situ.
 - Blok `.js`/`.css` dengan `try_files` itu **wajib** — tanpa itu, script yang di-generate Livewire secara dinamis (`/livewire/livewire.js`, dst) bisa 404 dan form berbasis Livewire terlihat reload penuh + isian ke-reset tiap submit.
 - Kalau VPS-mu support HTTP/3 (aaPanel versi baru dengan OpenResty/QUIC) boleh ditambahkan `listen 443 quic; http3 on;` dkk, tapi tidak wajib — template di atas aman dipakai di instalasi aaPanel standar mana pun.
 - Kalau situsnya perlu redirect non-www → www atau sebaliknya, tambahkan server block kedua khusus redirect (lihat pola di `web-institusi/docs/aapanel-deployment-checklist.md` Bagian 2.8) — web-kopdes secara default tidak memaksa domain pakai `www.`.
@@ -381,3 +377,5 @@ Langkah manualnya sama seperti Bagian 2, dengan perbedaan:
 | `rm: cannot remove '.user.ini': Operation not permitted` saat `deploy-site.sh` membersihkan folder | aaPanel menandai `.user.ini` immutable (`chattr +i`) untuk keamanan, jadi `rm` ditolak walau sebagai `root` | Sudah otomatis ditangani `deploy-site.sh` (`chattr -iR` sebelum `rm`) — kalau masih terjadi, update dulu ke `deploy-site.sh` versi terbaru dari repo, atau jalankan manual: `chattr -i /www/wwwroot/DOMAIN_KAMU/.user.ini` |
 | `composer install` gagal: "found composer-runtime-api[2.0.0] but it does not match the constraint ^2.2" | Composer bawaan aaPanel App Store versinya lama (v2.0.x), Laravel 12 butuh Composer >=2.2 | Sudah otomatis ditangani `deploy-site.sh` (`composer self-update` sebelum `composer install`) — kalau masih terjadi, jalankan manual: `composer self-update` lalu ulangi `composer install --no-dev --optimize-autoloader` |
 | `deploy-site.sh: line ...: psql: command not found` saat import dump | PostgreSQL client belum terpasang di VPS (biasanya karena `vps-onetime-setup.sh` belum dijalankan) | Sudah otomatis ditangani `deploy-site.sh` (auto-install `postgresql-client` kalau `psql` tidak ada) — kalau masih terjadi, jalankan manual: `apt-get update -y && apt-get install -y postgresql-client`, lalu ulangi `bash deploy-site.sh clone ...` |
+| Nginx gagal save: `nginx: [emerg] duplicate location "/"` | Ada `location / {}` manual di Config, padahal preset Rewrite `Laravel5` sudah nyediain itu lewat include | Hapus blok `location / {}` yang ditambah manual dari Config; pastikan tab **Rewrite** situsnya di-set ke preset `Laravel5` |
+| Situs 403 Forbidden padahal SSL & Nginx sudah aktif | `root` di config Nginx nunjuk ke folder project langsung, bukan ke `public/` | Pastikan baris `root` di Config persis `root /www/wwwroot/DOMAIN_KAMU/public;` (ada `/public`-nya) |
