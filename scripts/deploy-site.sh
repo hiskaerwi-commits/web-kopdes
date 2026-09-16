@@ -193,6 +193,11 @@ php artisan view:clear
 php artisan storage:link
 
 if [ "$MODE" = "clone" ]; then
+    if ! command -v psql >/dev/null 2>&1; then
+        echo "== psql tidak ditemukan, install postgresql-client =="
+        apt-get update -y && apt-get install -y postgresql-client
+    fi
+
     # PGPASSWORD boleh kosong (default) — kalau PostgreSQL pakai trust auth untuk koneksi lokal
     # (umum di instalasi aaPanel), psql tetap bisa konek sebagai $DB_SUPERUSER tanpa password.
     # Kalau ternyata VPS ini butuh password, isi --db-superuser-pass saat menjalankan script.
