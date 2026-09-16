@@ -303,14 +303,16 @@ Catatan:
 - Kalau situsnya perlu redirect non-www → www atau sebaliknya, tambahkan server block kedua khusus redirect (lihat pola di `web-institusi/docs/aapanel-deployment-checklist.md` Bagian 2.8) — web-kopdes secara default tidak memaksa domain pakai `www.`.
 - **Pakai Cloudflare (proxy/"orange cloud" aktif)?** Template di atas asumsi origin (VPS) tetap punya sertifikat HTTPS sendiri (dari aaPanel Let's Encrypt atau di-apply otomatis waktu Add Site) — cocok dipakai kalau mode **SSL/TLS** di Cloudflare diset **Full** atau **Full (strict)**. Kalau modenya **Flexible** (origin cuma HTTP, SSL cuma sampai Cloudflare), hapus baris `listen 443 ssl;`, `listen [::]:443 ssl;`, dan seluruh blok `#SSL-START ... #SSL-END` — origin tidak perlu sertifikat sama sekali dalam mode ini.
 
-### 2.9 Tes fitur sync data wilayah (Puppeteer)
+### 2.9 Tes fitur statistik live per-provinsi (Puppeteer)
+
+Data wilayah (nama provinsi/kabupaten/kecamatan/desa) **sudah lengkap** dari dump database yang diimpor di Bagian 2.6 — tidak perlu di-sync lagi. Yang dites di sini adalah fitur **beda**: mengambil statistik LIVE (jumlah koperasi aktif, dll) per provinsi dari `api.simkopdes.go.id` pakai Puppeteer/Chrome headless, yang otomatis terpicu tiap admin ganti provinsi di Pengaturan Website. Tes manual sekali di sini cuma buat mastiin Puppeteer/Chrome jalan normal di VPS ini:
 
 ```bash
 cd /www/wwwroot/DOMAIN_KAMU
 node scripts/sync-simkopdes.mjs --region=KODE_PROVINSI
 ```
 
-Kalau berhasil tanpa error, fitur "ganti provinsi di Pengaturan Website" otomatis akan bekerja di produksi. Kalau gagal karena Chrome tidak ketemu, cek lagi Bagian 1.4.
+Ganti `KODE_PROVINSI` dengan kode 2 digit provinsi situs ini (misal `31` untuk DKI Jakarta, `36` untuk Banten — daftar lengkap ada di tabel `wilayah` yang sudah ter-import). Kalau berhasil tanpa error, fitur "ganti provinsi di Pengaturan Website" otomatis akan bekerja di produksi. Kalau gagal karena Chrome tidak ketemu, cek lagi Bagian 1.4.
 
 Tidak perlu setup cron/Supervisor untuk ini — sync dipicu langsung dari aplikasi (background process) setiap admin mengganti provinsi, bukan proses terjadwal.
 
