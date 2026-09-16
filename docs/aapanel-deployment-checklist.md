@@ -91,22 +91,35 @@ php -m | grep -i pgsql
 
 ## Bagian 2 — Deploy situs pertama di VPS (clone dari GitHub)
 
-> **Jalan pintas:** setelah Bagian 2.1–2.3 (bikin website & database lewat aaPanel), sisanya bisa dijalankan otomatis:
-> ```bash
-> cd /www/wwwroot/DOMAIN_KAMU
-> bash scripts/deploy-site.sh clone \
->   --domain=DOMAIN_KAMU \
->   --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
->   --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB' \
->   --db-superuser-pass='PASSWORD_POSTGRES'
-> ```
-> (Script ini juga meng-clone dirinya sendiri lewat `git clone`, jadi cukup unduh dulu satu file ini via `curl` kalau folder masih kosong — lihat komentar di kepala file `deploy-site.sh`.) Detail tiap langkah tetap ditulis di bawah untuk troubleshooting.
+### Cara cepat (direkomendasikan) — tinggal isi, tidak perlu edit `.env` manual
+
+Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **satu perintah**. Script `deploy-site.sh` yang otomatis mengisi `.env` (APP_URL, koneksi database, APP_KEY, dll), import data awal, migrate, build, sampai cache produksi — persis seperti pola di `web-institusi`.
+
+1. **aaPanel → Website → Add site**: isi domain, pilih PHP 8.3, aktifkan **Create database** (catat nama DB, username, password yang di-generate).
+2. Masuk ke folder situsnya lalu ambil script (kalau folder masih kosong):
+   ```bash
+   cd /www/wwwroot/DOMAIN_KAMU
+   curl -fsSL https://raw.githubusercontent.com/hiskaerwi-commits/web-kopdes/main/scripts/deploy-site.sh -o deploy-site.sh
+   ```
+3. Jalankan, isi bagian `DOMAIN_KAMU` / `NAMA_DB` / dst dengan data asli, sisanya biar script yang urus:
+   ```bash
+   bash deploy-site.sh clone \
+     --domain=DOMAIN_KAMU \
+     --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
+     --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB' \
+     --db-superuser-pass='PASSWORD_POSTGRES'
+   ```
+4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH: **konfigurasi vhost Nginx** (Bagian 2.8) dan **aktifkan SSL**. Lalu buka situsnya dan ganti password admin.
+
+Tidak ada langkah "buka `.env`, edit satu-satu" — semua field `.env` yang penting (APP_ENV, APP_DEBUG, APP_URL, DB_*, APP_KEY) sudah diisi otomatis oleh script dari parameter yang kamu ketik di langkah 3.
+
+Detail apa saja yang dikerjakan script di tiap langkah ditulis di bawah ini — berguna kalau mau paham prosesnya atau kalau script-nya gagal di tengah jalan dan perlu lanjut manual dari titik yang gagal.
 
 ### 2.1 Buat website di aaPanel
 
 Menu **Website → Add site**: isi domain (dan `www.domain`), pilih PHP 8.3, aktifkan **Create database** (catat dulu nama DB & password yang di-generate, atau buat manual lewat menu **Database**). Arahkan DNS domain ke IP VPS, lalu aktifkan **SSL → Let's Encrypt** setelah DNS aktif.
 
-### 2.2 Bersihkan folder default & siapkan clone
+### 2.2 Bersihkan folder default & siapkan clone (otomatis oleh script)
 
 aaPanel biasanya mengisi document root dengan file default (`index.html`, dll) dan folder `.well-known` (dipakai validasi SSL) — jangan hapus `.well-known`:
 
@@ -118,21 +131,21 @@ git clone https://github.com/hiskaerwi-commits/web-kopdes.git .
 
 (Kalau folder tidak kosong, `git clone .` akan menolak — makanya folder dibersihkan dulu.)
 
-### 2.3 Perbaiki ownership & konfigurasi git
+### 2.3 Perbaiki ownership & konfigurasi git (otomatis oleh script)
 
 ```bash
 chown -R www:www /www/wwwroot/DOMAIN_KAMU
 git config --global --add safe.directory /www/wwwroot/DOMAIN_KAMU
 ```
 
-### 2.4 Install dependency
+### 2.4 Install dependency (otomatis oleh script)
 
 ```bash
 composer install --no-dev --optimize-autoloader
 npm install
 ```
 
-### 2.5 Setup `.env`
+### 2.5 Setup `.env` (dikerjakan otomatis oleh `deploy-site.sh` — cuma referensi)
 
 ```bash
 cp .env.example .env
@@ -163,7 +176,7 @@ Verifikasi cepat:
 grep -E "^(APP_ENV|APP_DEBUG|APP_URL|DB_)" .env
 ```
 
-### 2.6 Buat database & import dump awal
+### 2.6 Buat database & import dump awal (import + GRANT otomatis oleh script, kalau `--db-superuser-pass` diisi)
 
 Kalau database belum dibuat otomatis oleh aaPanel di langkah 2.1, buat manual lewat menu **Database** aaPanel (catat nama DB, user, password).
 
@@ -186,7 +199,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO US
 
 > Kalau mau mulai dari database kosong sama sekali (tanpa data dasar), lewati import dump ini dan langsung `php artisan migrate --force` di langkah berikutnya.
 
-### 2.7 Migrate, storage, build, cache
+### 2.7 Migrate, storage, build, cache (otomatis oleh script)
 
 ```bash
 php artisan migrate --force
@@ -255,15 +268,21 @@ Tidak perlu setup cron/Supervisor untuk ini — sync dipicu langsung dari aplika
 
 Kalau di VPS yang sama sudah ada satu situs web-kopdes yang jalan normal, situs berikutnya bisa disalin (lebih cepat, tidak perlu `composer install`/`npm install` ulang).
 
-> **Jalan pintas:**
-> ```bash
-> cd /www/wwwroot/DOMAIN_BARU
-> bash /www/wwwroot/DOMAIN_LAMA/scripts/deploy-site.sh copy \
->   --domain=DOMAIN_BARU \
->   --source=/www/wwwroot/DOMAIN_LAMA \
->   --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU' \
->   --db-superuser-pass='PASSWORD_POSTGRES'
-> ```
+### Cara cepat (direkomendasikan) — sama simpelnya, tidak perlu edit `.env` manual
+
+1. **aaPanel → Website → Add site** untuk domain baru, aktifkan **Create database** (database BARU, jangan pakai database situs lama).
+2. Masuk ke folder situs baru, lalu jalankan (isi `DOMAIN_BARU` / `DOMAIN_LAMA` / data DB sesuai kondisi kamu):
+   ```bash
+   cd /www/wwwroot/DOMAIN_BARU
+   bash /www/wwwroot/DOMAIN_LAMA/scripts/deploy-site.sh copy \
+     --domain=DOMAIN_BARU \
+     --source=/www/wwwroot/DOMAIN_LAMA \
+     --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU' \
+     --db-superuser-pass='PASSWORD_POSTGRES'
+   ```
+3. Sisanya sama seperti Bagian 2 langkah 4: konfigurasi vhost Nginx + SSL lewat GUI aaPanel, lalu ganti password admin.
+
+Detail perbedaan tiap langkah dibanding Bagian 2 (kalau mau paham prosesnya / script gagal di tengah jalan):
 
 Langkah manualnya sama seperti Bagian 2, dengan perbedaan:
 
