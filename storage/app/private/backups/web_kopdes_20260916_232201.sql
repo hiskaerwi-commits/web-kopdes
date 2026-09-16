@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LFA5Hb7G6SUJjzWitmR2zBBbP67lUcecvKgu43yyYxIji4xoGfipaAMH6Toi7Dm
+\restrict XQYATTvsZZ0ZXNrX3ncP2UyrvpaS5OFyGb49Nmsiaq4WfoipIC7sYu0fxtwyOJI
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -486,7 +486,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 --
 
 COPY public.site_settings (id, name, tagline, about, address, email, phone, hours, services, created_at, updated_at, logo_path, hero_title, hero_image_path, province_code, regency_code, district_code, village_code, favicon_path, meta_title, meta_description, meta_keywords, og_image_path) FROM stdin;
-1	Koperasi Desa Merah Putih	Dari desa, untuk kesejahteraan bersama.	Koperasi Desa/Kelurahan Merah Putih menghubungkan potensi desa dengan kebutuhan masyarakat. Melalui pengelolaan yang modern dan dukungan Simkopdes, koperasi memperkuat usaha lokal, distribusi pangan, serta partisipasi anggota dalam ekonomi desa.	\N	\N	\N	\N	[]	2026-09-14 14:23:08	2026-09-16 22:49:15	branding/01M2N8W6QF90G3YT6YBZXTB7ZV.webp	Koperasi Desa Merah Putih	branding/01M2N8W6RPFQPE02H17QB39K1N.jpg	36	\N	\N	\N	branding/01M2N9MGBHE2C6TP003N9K2YJJ.png	\N	\N	\N	\N
+1	Koperasi Desa Merah Putih	Dari desa, untuk kesejahteraan bersama.	Koperasi Desa/Kelurahan Merah Putih menghubungkan potensi desa dengan kebutuhan masyarakat. Melalui pengelolaan yang modern dan dukungan Simkopdes, koperasi memperkuat usaha lokal, distribusi pangan, serta partisipasi anggota dalam ekonomi desa.	Graha Mandiri Lt. 3, Jl. Imam Bonjol No. 61, Menteng, Jakarta Pusat 10310	korwil@merahputih.kop.id	(021) 1500 587	\N	[]	2026-09-14 14:23:08	2026-09-16 22:49:15	branding/01M2N8W6QF90G3YT6YBZXTB7ZV.webp	Koperasi Desa Merah Putih	branding/01M2N8W6RPFQPE02H17QB39K1N.jpg	36	\N	\N	\N	branding/01M2N9MGBHE2C6TP003N9K2YJJ.png	\N	\N	\N	\N
 \.
 
 
@@ -91906,5 +91906,5 @@ CREATE INDEX wilayah_parent_code_index ON public.wilayah USING btree (parent_cod
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LFA5Hb7G6SUJjzWitmR2zBBbP67lUcecvKgu43yyYxIji4xoGfipaAMH6Toi7Dm
+\unrestrict XQYATTvsZZ0ZXNrX3ncP2UyrvpaS5OFyGb49Nmsiaq4WfoipIC7sYu0fxtwyOJI
 
