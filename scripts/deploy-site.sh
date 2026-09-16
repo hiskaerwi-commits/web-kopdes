@@ -25,7 +25,9 @@ Opsi:
   --db-host=HOST                 Default: 127.0.0.1
   --db-port=PORT                 Default: 5432
   --db-superuser=USER            Default: postgres (dipakai untuk import dump & GRANT, hanya mode clone)
-  --db-superuser-pass=PASSWORD   Password superuser database (hanya mode clone; kosongkan untuk lewati import otomatis)
+  --db-superuser-pass=PASSWORD   Password superuser database (hanya mode clone). Kosongkan kalau PostgreSQL
+                                  di VPS ini pakai trust auth untuk koneksi lokal (default umum di aaPanel) —
+                                  psql akan tetap jalan tanpa password.
   --yes                          Lewati konfirmasi interaktif
   -h, --help                     Tampilkan bantuan ini
 
@@ -33,15 +35,16 @@ Contoh (situs pertama di VPS):
   cd /www/wwwroot/kopdes-niagale.go.id
   bash deploy-site.sh clone --domain=kopdes-niagale.go.id \
     --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
-    --db-name=kopdes_niagale --db-user=kopdes_niagale --db-pass='RAHASIA' \
-    --db-superuser-pass='PASSWORD_POSTGRES'
+    --db-name=kopdes_niagale --db-user=kopdes_niagale --db-pass='RAHASIA'
 
 Contoh (situs kedua dst di VPS yang sama, salin dari situs pertama):
   cd /www/wwwroot/kopdes-lain.go.id
   bash deploy-site.sh copy --domain=kopdes-lain.go.id \
     --source=/www/wwwroot/kopdes-niagale.go.id \
-    --db-name=kopdes_lain --db-user=kopdes_lain --db-pass='RAHASIA' \
-    --db-superuser-pass='PASSWORD_POSTGRES'
+    --db-name=kopdes_lain --db-user=kopdes_lain --db-pass='RAHASIA'
+
+Kalau psql butuh password untuk user postgres di VPS-mu (bukan trust auth), tambahkan
+--db-superuser-pass='PASSWORD_POSTGRES' ke perintah di atas.
 USAGE
 }
 
@@ -183,28 +186,25 @@ php artisan view:clear
 php artisan storage:link
 
 if [ "$MODE" = "clone" ]; then
-    if [ -n "$DB_SUPERUSER_PASS" ]; then
-        LATEST_DUMP=$(ls -t storage/app/private/backups/*.sql 2>/dev/null | head -n1 || true)
-        if [ -n "$LATEST_DUMP" ]; then
-            echo "== Import dump database: $LATEST_DUMP =="
-            PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -f "$LATEST_DUMP"
-        else
-            echo "Tidak ada file dump di storage/app/private/backups, migrate dari kosong."
-            php artisan migrate --force
-        fi
+    # PGPASSWORD boleh kosong (default) — kalau PostgreSQL pakai trust auth untuk koneksi lokal
+    # (umum di instalasi aaPanel), psql tetap bisa konek sebagai $DB_SUPERUSER tanpa password.
+    # Kalau ternyata VPS ini butuh password, isi --db-superuser-pass saat menjalankan script.
+    LATEST_DUMP=$(ls -t storage/app/private/backups/*.sql 2>/dev/null | head -n1 || true)
+    if [ -n "$LATEST_DUMP" ]; then
+        echo "== Import dump database: $LATEST_DUMP =="
+        PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" -f "$LATEST_DUMP"
+    else
+        echo "Tidak ada file dump di storage/app/private/backups, migrate dari kosong."
+        php artisan migrate --force
+    fi
 
-        echo "== Berikan hak akses tabel ke user aplikasi =="
-        PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" <<SQL
+    echo "== Berikan hak akses tabel ke user aplikasi =="
+    PGPASSWORD="$DB_SUPERUSER_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d "$DB_NAME" <<SQL
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${DB_USER};
 SQL
-    else
-        echo "PERINGATAN: --db-superuser-pass tidak diisi. Lewati import dump & GRANT otomatis."
-        echo "Buat database+user lebih dulu lewat aaPanel, lalu jalankan migrate manual:"
-        php artisan migrate --force
-    fi
 
     echo "== Build aset frontend =="
     npm run build

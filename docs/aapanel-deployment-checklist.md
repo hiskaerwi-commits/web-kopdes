@@ -99,16 +99,16 @@ Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **s
 2. Masuk ke folder situsnya lalu ambil script (kalau folder masih kosong):
    ```bash
    cd /www/wwwroot/DOMAIN_KAMU
-   curl -fsSL https://raw.githubusercontent.com/hiskaerwi-commits/web-kopdes/main/scripts/deploy-site.sh -o deploy-site.sh
+   curl -o deploy-site.sh https://raw.githubusercontent.com/hiskaerwi-commits/web-kopdes/main/scripts/deploy-site.sh
    ```
-3. Jalankan, isi bagian `DOMAIN_KAMU` / `NAMA_DB` / dst dengan data asli, sisanya biar script yang urus:
+3. Jalankan, isi bagian `DOMAIN_KAMU` / `NAMA_DB` / dst dengan data asli, sisanya biar script yang urus (import dump database + `GRANT` hak akses ke user aplikasi dijalankan otomatis di dalam script, lihat Bagian 2.6):
    ```bash
    bash deploy-site.sh clone \
      --domain=DOMAIN_KAMU \
      --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
-     --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB' \
-     --db-superuser-pass='PASSWORD_POSTGRES'
+     --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB'
    ```
+   Perintah di atas cukup untuk kebanyakan VPS aaPanel, karena PostgreSQL bawaan aaPanel biasanya pakai **trust auth** untuk koneksi lokal — user `postgres` tidak butuh password sama sekali. Kalau di VPS-mu ternyata `psql -U postgres` minta password (bisa dicek manual dulu), tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` di baris terakhir.
 4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH: **konfigurasi vhost Nginx** (Bagian 2.8) dan **aktifkan SSL**. Lalu buka situsnya dan ganti password admin.
 
 Tidak ada langkah "buka `.env`, edit satu-satu" — semua field `.env` yang penting (APP_ENV, APP_DEBUG, APP_URL, DB_*, APP_KEY) sudah diisi otomatis oleh script dari parameter yang kamu ketik di langkah 3.
@@ -176,17 +176,19 @@ Verifikasi cepat:
 grep -E "^(APP_ENV|APP_DEBUG|APP_URL|DB_)" .env
 ```
 
-### 2.6 Buat database & import dump awal (import + GRANT otomatis oleh script, kalau `--db-superuser-pass` diisi)
+### 2.6 Buat database & import dump awal (dikerjakan otomatis oleh `deploy-site.sh` — ini referensi manualnya)
 
 Kalau database belum dibuat otomatis oleh aaPanel di langkah 2.1, buat manual lewat menu **Database** aaPanel (catat nama DB, user, password).
 
-Repo ini menyertakan **backup database lokal** di `storage/app/private/backups/*.sql` — sudah berisi data dasar (daftar wilayah Indonesia lengkap, daftar 38 provinsi untuk Jaringan Koperasi, dll) supaya website tidak kosong total saat pertama dibuka. Import ke database yang baru dibuat:
+Repo ini menyertakan **backup database lokal** di `storage/app/private/backups/*.sql` — sudah berisi data dasar (daftar wilayah Indonesia lengkap, daftar 38 provinsi untuk Jaringan Koperasi, dll) supaya website tidak kosong total saat pertama dibuka. Import ke database yang baru dibuat, sebagai user `postgres`:
 
 ```bash
 psql -h 127.0.0.1 -U postgres -d NAMA_DB -f storage/app/private/backups/NAMA_FILE.sql
 ```
 
-Karena dump dibuat dengan `--no-owner`, tabel-tabelnya masih dimiliki user `postgres`. Berikan hak akses ke user aplikasi:
+Kebanyakan instalasi PostgreSQL bawaan aaPanel pakai **trust auth** untuk koneksi lokal, jadi perintah di atas jalan tanpa diminta password. Kalau di VPS-mu ternyata diminta password, jalankan `PGPASSWORD='PASSWORD_POSTGRES' psql ...` atau isi `--db-superuser-pass` saat pakai `deploy-site.sh`.
+
+Karena dump dibuat dengan `--no-owner`, tabel-tabelnya masih dimiliki user `postgres`. Berikan hak akses ke user aplikasi — **ini langkah GRANT yang otomatis dijalankan `deploy-site.sh` setiap deploy**, jadi normalnya tidak perlu ditempel manual kecuali script gagal di tengah jalan:
 
 ```sql
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO USER_DB;
@@ -277,9 +279,9 @@ Kalau di VPS yang sama sudah ada satu situs web-kopdes yang jalan normal, situs 
    bash /www/wwwroot/DOMAIN_LAMA/scripts/deploy-site.sh copy \
      --domain=DOMAIN_BARU \
      --source=/www/wwwroot/DOMAIN_LAMA \
-     --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU' \
-     --db-superuser-pass='PASSWORD_POSTGRES'
+     --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU'
    ```
+   Sama seperti Bagian 2 — tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` hanya kalau `psql -U postgres` di VPS-mu memang minta password.
 3. Sisanya sama seperti Bagian 2 langkah 4: konfigurasi vhost Nginx + SSL lewat GUI aaPanel, lalu ganti password admin.
 
 Detail perbedaan tiap langkah dibanding Bagian 2 (kalau mau paham prosesnya / script gagal di tengah jalan):
