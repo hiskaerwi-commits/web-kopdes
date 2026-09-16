@@ -155,6 +155,9 @@ if [ "$MODE" = "clone" ]; then
 
     git config --global --add safe.directory "$TARGET_DIR"
 
+    echo "== Update Composer (Laravel 12 butuh composer-runtime-api >=2.2, aaPanel App Store kadang masih versi lama) =="
+    composer self-update || echo "PERINGATAN: composer self-update gagal, lanjut pakai versi yang terpasang."
+
     echo "== Install dependency PHP & Node =="
     composer install --no-dev --optimize-autoloader
     npm install

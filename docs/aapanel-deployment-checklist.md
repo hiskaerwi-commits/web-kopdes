@@ -103,10 +103,9 @@ Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **s
    ```
 3. Jalankan, isi bagian `DOMAIN_KAMU` / `NAMA_DB` / dst dengan data asli, sisanya biar script yang urus (import dump database + `GRANT` hak akses ke user aplikasi dijalankan otomatis di dalam script, lihat Bagian 2.6):
    ```bash
-   bash deploy-site.sh clone \
-     --domain=DOMAIN_KAMU \
-     --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
-     --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB'
+   bash deploy-site.sh clone --domain=DOMAIN_KAMU \
+   --repo=https://github.com/hiskaerwi-commits/web-kopdes.git \
+   --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB'
    ```
    Perintah di atas cukup untuk kebanyakan VPS aaPanel, karena PostgreSQL bawaan aaPanel biasanya pakai **trust auth** untuk koneksi lokal — user `postgres` tidak butuh password sama sekali. Kalau di VPS-mu ternyata `psql -U postgres` minta password (bisa dicek manual dulu), tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` di baris terakhir.
 4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH: pastikan **SSL sudah aktif** (lewat menu SSL aaPanel, atau kalau domain di belakang Cloudflare — cukup pastikan mode SSL/TLS Cloudflare di **Full** atau **Full (strict)**, bukan Flexible, supaya koneksi Cloudflare↔origin tetap HTTPS dan cocok dengan config Nginx di Bagian 2.8), baru **tempel konfigurasi vhost Nginx** (Bagian 2.8, tinggal copy-paste ganti domain). Lalu buka situsnya dan ganti password admin.
@@ -339,10 +338,9 @@ Kalau di VPS yang sama sudah ada satu situs web-kopdes yang jalan normal, situs 
 2. Masuk ke folder situs baru, lalu jalankan (isi `DOMAIN_BARU` / `DOMAIN_LAMA` / data DB sesuai kondisi kamu):
    ```bash
    cd /www/wwwroot/DOMAIN_BARU
-   bash /www/wwwroot/DOMAIN_LAMA/scripts/deploy-site.sh copy \
-     --domain=DOMAIN_BARU \
-     --source=/www/wwwroot/DOMAIN_LAMA \
-     --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU'
+   bash /www/wwwroot/DOMAIN_LAMA/scripts/deploy-site.sh copy --domain=DOMAIN_BARU \
+   --source=/www/wwwroot/DOMAIN_LAMA \
+   --db-name=NAMA_DB_BARU --db-user=USER_DB_BARU --db-pass='PASSWORD_BARU'
    ```
    Sama seperti Bagian 2 — tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` hanya kalau `psql -U postgres` di VPS-mu memang minta password.
 3. Sisanya sama seperti Bagian 2 langkah 4: konfigurasi vhost Nginx + SSL lewat GUI aaPanel, lalu ganti password admin.
@@ -381,3 +379,4 @@ Langkah manualnya sama seperti Bagian 2, dengan perbedaan:
 | `npm run build` gagal karena versi Node tidak cocok | Node.js VPS lebih lama dari yang dipakai saat development | Update Node.js lewat App Store aaPanel ke versi LTS terbaru |
 | Login admin gagal terus padahal password benar | Sesi/cache lama (`SESSION_DRIVER=database`) menyimpan token dari domain lama setelah `cp -a` | `php artisan session:table` (kalau tabel belum ada) lalu kosongkan tabel `sessions`, atau cukup buka di mode incognito |
 | `rm: cannot remove '.user.ini': Operation not permitted` saat `deploy-site.sh` membersihkan folder | aaPanel menandai `.user.ini` immutable (`chattr +i`) untuk keamanan, jadi `rm` ditolak walau sebagai `root` | Sudah otomatis ditangani `deploy-site.sh` (`chattr -iR` sebelum `rm`) — kalau masih terjadi, update dulu ke `deploy-site.sh` versi terbaru dari repo, atau jalankan manual: `chattr -i /www/wwwroot/DOMAIN_KAMU/.user.ini` |
+| `composer install` gagal: "found composer-runtime-api[2.0.0] but it does not match the constraint ^2.2" | Composer bawaan aaPanel App Store versinya lama (v2.0.x), Laravel 12 butuh Composer >=2.2 | Sudah otomatis ditangani `deploy-site.sh` (`composer self-update` sebelum `composer install`) — kalau masih terjadi, jalankan manual: `composer self-update` lalu ulangi `composer install --no-dev --optimize-autoloader` |
