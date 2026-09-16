@@ -52,7 +52,6 @@ apt-get install -y \
 echo ""
 echo "===================================================================="
 echo "Ringkasan versi terpasang:"
-echo "PHP CLI  : $(php -v 2>/dev/null | head -n1 || echo 'tidak ditemukan')"
 echo "Composer : $(composer --version 2>/dev/null || echo 'tidak ditemukan')"
 echo "psql     : $(psql --version 2>/dev/null || echo 'tidak ditemukan')"
 echo "Node     : $(node -v 2>/dev/null || echo 'tidak ditemukan, cek langkah 3')"
