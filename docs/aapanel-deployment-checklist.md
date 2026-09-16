@@ -95,7 +95,7 @@ php -m | grep -i pgsql
 
 Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **satu perintah**. Script `deploy-site.sh` yang otomatis mengisi `.env` (APP_URL, koneksi database, APP_KEY, dll), import data awal, migrate, build, sampai cache produksi — persis seperti pola di `web-institusi`.
 
-1. **aaPanel → Website → Add site**: isi domain, pilih PHP 8.3, aktifkan **Create database** (catat nama DB, username, password yang di-generate).
+1. **aaPanel → Website → Add site**: isi domain, pilih PHP 8.3 (kalau di VPS-mu cuma PHP 8.3 yang di-install waktu setup aaPanel, ini otomatis jadi satu-satunya pilihan), aktifkan **Create database** (catat nama DB, username, password yang di-generate). Kalau ada opsi "Apply for a free SSL certificate" di dialog ini, aktifkan juga supaya SSL langsung terbit bareng saat situs dibuat.
 2. Masuk ke folder situsnya lalu ambil script (kalau folder masih kosong):
    ```bash
    cd /www/wwwroot/DOMAIN_KAMU
@@ -109,7 +109,7 @@ Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **s
      --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB'
    ```
    Perintah di atas cukup untuk kebanyakan VPS aaPanel, karena PostgreSQL bawaan aaPanel biasanya pakai **trust auth** untuk koneksi lokal — user `postgres` tidak butuh password sama sekali. Kalau di VPS-mu ternyata `psql -U postgres` minta password (bisa dicek manual dulu), tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` di baris terakhir.
-4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH (urutannya penting): **aktifkan SSL** dulu, baru **tempel konfigurasi vhost Nginx** (Bagian 2.8, tinggal copy-paste ganti domain). Lalu buka situsnya dan ganti password admin.
+4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH: pastikan **SSL sudah aktif** (lewat menu SSL aaPanel, atau kalau domain di belakang Cloudflare — cukup pastikan mode SSL/TLS Cloudflare di **Full** atau **Full (strict)**, bukan Flexible, supaya koneksi Cloudflare↔origin tetap HTTPS dan cocok dengan config Nginx di Bagian 2.8), baru **tempel konfigurasi vhost Nginx** (Bagian 2.8, tinggal copy-paste ganti domain). Lalu buka situsnya dan ganti password admin.
 
 Tidak ada langkah "buka `.env`, edit satu-satu" — semua field `.env` yang penting (APP_ENV, APP_DEBUG, APP_URL, DB_*, APP_KEY) sudah diisi otomatis oleh script dari parameter yang kamu ketik di langkah 3.
 
@@ -306,6 +306,7 @@ Catatan:
 - Blok `.js`/`.css` dengan `try_files` itu **wajib** — tanpa itu, script yang di-generate Livewire secara dinamis (`/livewire/livewire.js`, dst) bisa 404 dan form berbasis Livewire terlihat reload penuh + isian ke-reset tiap submit.
 - Kalau VPS-mu support HTTP/3 (aaPanel versi baru dengan OpenResty/QUIC) boleh ditambahkan `listen 443 quic; http3 on;` dkk, tapi tidak wajib — template di atas aman dipakai di instalasi aaPanel standar mana pun.
 - Kalau situsnya perlu redirect non-www → www atau sebaliknya, tambahkan server block kedua khusus redirect (lihat pola di `web-institusi/docs/aapanel-deployment-checklist.md` Bagian 2.8) — web-kopdes secara default tidak memaksa domain pakai `www.`.
+- **Pakai Cloudflare (proxy/"orange cloud" aktif)?** Template di atas asumsi origin (VPS) tetap punya sertifikat HTTPS sendiri (dari aaPanel Let's Encrypt atau di-apply otomatis waktu Add Site) — cocok dipakai kalau mode **SSL/TLS** di Cloudflare diset **Full** atau **Full (strict)**. Kalau modenya **Flexible** (origin cuma HTTP, SSL cuma sampai Cloudflare), hapus baris `listen 443 ssl;`, `listen [::]:443 ssl;`, dan seluruh blok `#SSL-START ... #SSL-END` — origin tidak perlu sertifikat sama sekali dalam mode ini.
 
 ### 2.9 Tes fitur sync data wilayah (Puppeteer)
 
