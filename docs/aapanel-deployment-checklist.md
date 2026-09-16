@@ -109,7 +109,7 @@ Cukup **2 langkah manual** lewat aaPanel (bikin website + database), sisanya **s
      --db-name=NAMA_DB --db-user=USER_DB --db-pass='PASSWORD_DB'
    ```
    Perintah di atas cukup untuk kebanyakan VPS aaPanel, karena PostgreSQL bawaan aaPanel biasanya pakai **trust auth** untuk koneksi lokal — user `postgres` tidak butuh password sama sekali. Kalau di VPS-mu ternyata `psql -U postgres` minta password (bisa dicek manual dulu), tambahkan `--db-superuser-pass='PASSWORD_POSTGRES'` di baris terakhir.
-4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH: **konfigurasi vhost Nginx** (Bagian 2.8) dan **aktifkan SSL**. Lalu buka situsnya dan ganti password admin.
+4. Setelah selesai, tinggal 2 hal manual lewat GUI aaPanel yang memang tidak bisa di-otomatisasi dari SSH (urutannya penting): **aktifkan SSL** dulu, baru **tempel konfigurasi vhost Nginx** (Bagian 2.8, tinggal copy-paste ganti domain). Lalu buka situsnya dan ganti password admin.
 
 Tidak ada langkah "buka `.env`, edit satu-satu" — semua field `.env` yang penting (APP_ENV, APP_DEBUG, APP_URL, DB_*, APP_KEY) sudah diisi otomatis oleh script dari parameter yang kamu ketik di langkah 3.
 
@@ -217,33 +217,95 @@ chmod -R 775 storage bootstrap/cache
 
 `migrate --force` aman dijalankan walau dump sudah diimpor — Laravel akan lihat tabel `migrations` sudah lengkap dan tidak menjalankan ulang apa pun.
 
-### 2.8 Konfigurasi Nginx
+### 2.8 Konfigurasi Nginx (siap tempel, ganti domain saja)
 
-Buka **Website → DOMAIN_KAMU → Config** di aaPanel, arahkan root ke `/www/wwwroot/DOMAIN_KAMU/public`, dan pastikan ada blok berikut (selain konfigurasi PHP bawaan aaPanel):
+**Urutan penting:** aktifkan **SSL → Let's Encrypt** dulu lewat GUI aaPanel (Website → DOMAIN_KAMU → SSL) supaya file sertifikatnya sudah ada di server, baru tempel config di bawah ini. Kalau config ditempel duluan sebelum SSL aktif, `ssl_certificate`-nya akan menunjuk ke file yang belum ada dan Nginx gagal reload.
+
+Buka **Website → DOMAIN_KAMU → Config**, **ganti seluruh isinya** dengan block berikut (cukup ganti semua `DOMAIN_KAMU` jadi domain asli — cari-ganti sekali saja):
 
 ```nginx
-root /www/wwwroot/DOMAIN_KAMU/public;
-index index.php;
+server
+{
+    listen 80;
+    listen 443 ssl;
+    listen [::]:80;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name DOMAIN_KAMU;
+    index index.php index.html;
+    root /www/wwwroot/DOMAIN_KAMU/public;
+    include /www/server/panel/vhost/nginx/extension/DOMAIN_KAMU/*.conf;
 
-location / {
-    try_files $uri $uri/ /index.php?$query_string;
-}
+    #CERT-APPLY-CHECK--START
+    include /www/server/panel/vhost/nginx/well-known/DOMAIN_KAMU.conf;
+    #CERT-APPLY-CHECK--END
+    #SSL-START
+    ssl_certificate    /www/server/panel/vhost/cert/DOMAIN_KAMU/fullchain.pem;
+    ssl_certificate_key    /www/server/panel/vhost/cert/DOMAIN_KAMU/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_tickets on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    add_header Strict-Transport-Security "max-age=31536000";
+    error_page 497 https://$host$request_uri;
+    #SSL-END
 
-location ~ \.php$ {
+    #ERROR-PAGE-START
+    error_page 404 /404.html;
+    error_page 502 /502.html;
+    #ERROR-PAGE-END
+
+    #PHP-INFO-START
     include enable-php-83.conf;
-}
+    #PHP-INFO-END
 
-location ~* \.(js|css)$ {
-    try_files $uri $uri/ /index.php?$query_string;
-    expires 7d;
-}
+    #REWRITE-START
+    include /www/server/panel/vhost/rewrite/DOMAIN_KAMU.conf;
+    #REWRITE-END
 
-location ~ /\.(?!well-known).* {
-    deny all;
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include enable-php-83.conf;
+    }
+
+    location ~ ^/(\.user\.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README\.md) {
+        return 404;
+    }
+
+    location ~ \.well-known {
+        allow all;
+    }
+
+    location ~* \.(js|css)$ {
+        try_files $uri $uri/ /index.php?$query_string;
+        expires 7d;
+        error_log /dev/null;
+        access_log /dev/null;
+    }
+
+    location ~* \.(gif|jpg|jpeg|png|bmp|svg|webp|ico)$ {
+        expires 30d;
+        error_log /dev/null;
+        access_log /dev/null;
+    }
+
+    access_log  /www/wwwlogs/DOMAIN_KAMU.log;
+    error_log   /www/wwwlogs/DOMAIN_KAMU.error.log;
 }
 ```
 
-Blok `.js`/`.css` penting — tanpa `try_files` di situ, script yang di-generate Livewire secara dinamis bisa 404.
+Save → `nginx -t` lewat aaPanel (atau menu Nginx) buat cek syntax valid → reload/restart Nginx.
+
+Catatan:
+- Blok `.php$` pakai `enable-php-83.conf` — samakan dengan versi PHP yang dipilih waktu **Add site** (Bagian 2.1). Kalau pilih versi PHP lain, ganti angkanya di dua tempat (`#PHP-INFO-START` dan `location ~ \.php$`).
+- Blok `.js`/`.css` dengan `try_files` itu **wajib** — tanpa itu, script yang di-generate Livewire secara dinamis (`/livewire/livewire.js`, dst) bisa 404 dan form berbasis Livewire terlihat reload penuh + isian ke-reset tiap submit.
+- Kalau VPS-mu support HTTP/3 (aaPanel versi baru dengan OpenResty/QUIC) boleh ditambahkan `listen 443 quic; http3 on;` dkk, tapi tidak wajib — template di atas aman dipakai di instalasi aaPanel standar mana pun.
+- Kalau situsnya perlu redirect non-www → www atau sebaliknya, tambahkan server block kedua khusus redirect (lihat pola di `web-institusi/docs/aapanel-deployment-checklist.md` Bagian 2.8) — web-kopdes secara default tidak memaksa domain pakai `www.`.
 
 ### 2.9 Tes fitur sync data wilayah (Puppeteer)
 
